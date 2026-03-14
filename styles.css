@@ -1,0 +1,202 @@
+:root {
+  --bg: #070707;
+  --panel: #111111;
+  --panel-2: #181818;
+  --line: #2b2b2b;
+  --text: #f5f5f5;
+  --dim: #858585;
+  --green: #2dff64;
+  --red: #ff4c5c;
+  --yellow: #ffe15a;
+  --cyan: #45e3ff;
+  --magenta: #ff6ce6;
+  --orange: #ff9e45;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(45, 255, 100, 0.08), transparent 32%),
+    linear-gradient(180deg, #050505 0%, #0b0b0b 100%);
+  color: var(--text);
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(520px, 760px) minmax(320px, 420px);
+  gap: 24px;
+  padding: 24px;
+  align-items: start;
+}
+
+.screen-shell,
+.panel {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.screen-shell {
+  padding: 14px;
+  border-radius: 20px;
+}
+
+.screen-topline,
+.screen-bottomline {
+  display: flex;
+  justify-content: space-between;
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#tft {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+  border: 2px solid #202020;
+  background: #000;
+  image-rendering: pixelated;
+  border-radius: 14px;
+}
+
+.controls-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.panel {
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button,
+select,
+input[type="range"] {
+  font: inherit;
+}
+
+button,
+select {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+button {
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  border-color: var(--green);
+}
+
+button.primary {
+  background: rgba(45, 255, 100, 0.12);
+  border-color: rgba(45, 255, 100, 0.35);
+}
+
+.track-grid,
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.track-grid.compact {
+  margin-top: 10px;
+}
+
+.track-btn.active,
+.slot-btn.active {
+  border-color: var(--green);
+  background: rgba(45, 255, 100, 0.12);
+}
+
+.mute-btn.muted {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.slider-block,
+.select-block,
+.checkbox-line {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.slider-block span,
+.select-block span,
+.checkbox-line span {
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.voice-note {
+  margin: 0 0 12px;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+.hidden {
+  display: none;
+}
+
+.dump-area,
+.debug-block {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--line);
+  background: #0a0a0a;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px;
+  font: inherit;
+}
+
+.dump-area {
+  resize: vertical;
+  margin-top: 12px;
+}
+
+.debug-block {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1080px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+}
