@@ -204,9 +204,9 @@ class BassGroove {
   computeTriggerProbability(context) {
     let probability = this.params.density * 0.18 + context.grooveEnergy * 0.36;
     if (context.isDownbeat) {
-      probability = 0.98;
+      probability = 0.95; // Downbeat fortemente privilegiado
     } else if (context.kick) {
-      probability = Math.max(probability, 0.68 + this.params.density * 0.2);
+      probability = 0.8 + this.params.density * 0.2; // Kick aumenta bastante a chance
     } else if (context.snare) {
       probability = Math.max(probability, 0.4 + this.params.density * 0.22);
     } else if (context.hatOpen) {
@@ -214,7 +214,8 @@ class BassGroove {
     } else if (context.hatClosed && this.restSteps > 0) {
       probability = Math.max(probability, 0.14 + this.params.density * 0.15);
     } else {
-      probability *= context.bassIsActive ? 0.45 : 0.18;
+      // Off-beat sem contexto fica bem menos provável (penalizado)
+      probability *= 0.3;
     }
 
     if (this.restSteps >= 3) probability += 0.12;
@@ -332,12 +333,13 @@ class BassGroove {
     let event = null;
     const gateRoll = this.randomUnit();
     if (gateRoll < probability) {
+      // Priorize downbeat and kick-step/structural pulse for accent
       const accent =
         context.isDownbeat ||
         context.kick ||
-        (context.snare && context.kick) ||
-        context.grooveEnergy > 1.1 ||
-        this.randomUnit() < 0.18;
+        (context.snare && this.randomUnit() < 0.3) ||
+        this.randomUnit() < 0.15; // Moderate random chance
+
       const candidate = this.chooseNote(context);
       const note = candidate.note;
       this.degree = candidate.degree;
@@ -542,7 +544,7 @@ class AudioEngine {
     return this.ctx.createBuffer(1, Math.max(1, Math.ceil(seconds * this.ctx.sampleRate)), this.ctx.sampleRate);
   }
 
-  buildKickBuffer(velocity) {
+  buildKickBuffer(event) {
     const params = this.voiceParams[0];
     const buffer = this.makeBuffer(0.72);
     const out = buffer.getChannelData(0);
@@ -551,13 +553,23 @@ class AudioEngine {
     const baseFreq = 35 + params.pitch * 50;
     const gainMul = 1 - (0.00025 + (1 - params.decay) * 0.002);
     const pitchMul = 0.96;
-    const sweepAmount = 150 + params.timbre * 350;
-    const driveFactor = 1 + params.drive * 4;
-    const cutoffBase = 0.04 + params.drive * 0.08;
+
+    let sweepAmount = 150 + params.timbre * 350;
+    if (event.accent) sweepAmount *= 1.2;
+    if (event.ghost) sweepAmount *= 0.6;
+
+    let driveFactor = 1 + params.drive * 4;
+    let cutoffBase = 0.04 + params.drive * 0.08;
+    if (event.accent) cutoffBase *= 1.3;
+    if (event.ghost) cutoffBase *= 0.7;
+
     const svfQ = 0.5 + params.timbre * 0.4;
-    let envGain = velocity;
+    let envGain = event.velocity;
+    if (event.ghost) envGain *= 0.7; // Reduce force further on ghost
+
     let envPitch = 1.0;
     let clickEnv = 1.0;
+    if (event.ghost) clickEnv = 0.3; // Less click on ghost notes
     let phase = 0.0;
     let svfLow = 0.0;
     let svfBand = 0.0;
@@ -598,7 +610,7 @@ class AudioEngine {
     return buffer;
   }
 
-  buildSnareBuffer(velocity) {
+  buildSnareBuffer(event) {
     const params = this.voiceParams[1];
     const buffer = this.makeBuffer(params.mode === 2 ? 0.85 : 0.52);
     const out = buffer.getChannelData(0);
@@ -610,11 +622,16 @@ class AudioEngine {
       return ((rngState & 65535) / 32768) - 1;
     };
 
+    const dynDecay = params.decay * (0.4 + event.velocity * 0.6);
+    const dynTimbre = params.timbre * (0.5 + event.velocity * 0.5);
+
     if (params.mode === 1) {
-      const rimMs = 20 + params.decay * 100;
+      let rimMs = 20 + dynDecay * 100;
+      if (event.ghost) rimMs *= 0.5;
       const envMulRim = calculateEnvMul(rimMs * 0.001, sr);
       const phaseInc = (800 + params.pitch * 1200) * srInv;
-      let env = velocity;
+      let env = event.velocity;
+      if (event.ghost) env *= 0.6;
       let phase = 0.0;
       for (let i = 0; i < out.length; i += 1) {
         env *= envMulRim;
@@ -628,12 +645,15 @@ class AudioEngine {
     }
 
     if (params.mode === 2) {
-      const envMulNoise = calculateEnvMul((100 + params.decay * 300) * 0.001, sr);
-      let envNoise = velocity;
+      let noiseMs = 100 + dynDecay * 300;
+      if (event.ghost) noiseMs *= 0.5;
+      const envMulNoise = calculateEnvMul(noiseMs * 0.001, sr);
+      let envNoise = event.velocity;
+      if (event.ghost) envNoise *= 0.6;
       let wire1 = 0.0;
       let burstCount = 4;
       let burstSamples = 0;
-      const burstEnvs = [velocity, 0, 0, 0];
+      const burstEnvs = [envNoise, 0, 0, 0];
       for (let i = 0; i < out.length; i += 1) {
         envNoise *= envMulNoise;
         if (burstSamples > 0) {
@@ -661,9 +681,14 @@ class AudioEngine {
       return buffer;
     }
 
-    const bodyMs = 80 + params.decay * 170;
-    const wireMs = 60 + params.decay * 390;
-    const clickMs = 1.5 + params.timbre * 1.5;
+    let bodyMs = 80 + dynDecay * 170;
+    let wireMs = 60 + dynDecay * 390;
+    let clickMs = 1.5 + dynTimbre * 1.5;
+    if (event.ghost) {
+      bodyMs *= 0.5;
+      wireMs *= 0.5;
+      clickMs *= 0.3;
+    }
     const pitchMs = 15;
     const envMulBody = calculateEnvMul(bodyMs * 0.001, sr);
     const envMulNoise = calculateEnvMul(wireMs * 0.001, sr);
@@ -672,13 +697,18 @@ class AudioEngine {
     const baseFreq = 170 + params.pitch * 70;
     const phaseInc = baseFreq * srInv;
     const phaseInc2 = baseFreq * 1.48 * srInv;
-    const filterC1 = 0.12 + params.timbre * 0.10;
-    const filterC2 = 0.28 + params.timbre * 0.15;
-    const wireGain = 1 + params.timbre * 0.8;
-    const clickGain = 0.5 + params.timbre * 1.0;
-    let envBody = velocity;
-    let envNoise = velocity;
-    let envClick = velocity;
+    const filterC1 = 0.12 + dynTimbre * 0.10;
+    const filterC2 = 0.28 + dynTimbre * 0.15;
+    const wireGain = 1 + dynTimbre * 0.8;
+    const clickGain = 0.5 + dynTimbre * 1.0;
+    let envBody = event.velocity;
+    let envNoise = event.velocity;
+    let envClick = event.velocity;
+    if (event.ghost) {
+      envBody *= 0.5;
+      envNoise *= 0.6;
+      envClick *= 0.2;
+    }
     let envPitch = 1.0;
     let wire1 = 0.0;
     let wire2 = 0.0;
@@ -723,7 +753,7 @@ class AudioEngine {
     return buffer;
   }
 
-  buildHatBuffer(velocity, open) {
+  buildHatBuffer(event, open) {
     const params = this.voiceParams[open ? 3 : 2];
     const buffer = this.makeBuffer(open ? 1.0 : 0.24);
     const out = buffer.getChannelData(0);
@@ -731,12 +761,21 @@ class AudioEngine {
     const srInv = 1 / sr;
     const minMs = open ? 300 : 40;
     const maxMs = open ? 900 : 100;
-    const envMul = calculateEnvMul((minMs + params.decay * (maxMs - minMs)) * 0.001, sr);
-    const baseFreq = 300 + params.timbre * 300;
+    let envMs = minMs + params.decay * (maxMs - minMs);
+    if (event.ghost) envMs *= 0.6; // Shorter decay for ghost
+
+    let dynTimbre = params.timbre;
+    if (event.accent) dynTimbre = clamp(dynTimbre + 0.2, 0, 1);
+    if (event.ghost) dynTimbre = clamp(dynTimbre - 0.3, 0, 1);
+
+    const envMul = calculateEnvMul(envMs * 0.001, sr);
+    const baseFreq = 300 + dynTimbre * 300;
     const ratios = [1.0, 1.48, 2.15, 3.71];
     const phase = [0, 0, 0, 0];
     const inc = ratios.map((ratio) => baseFreq * ratio * srInv);
-    let env = velocity;
+    let env = event.velocity;
+    if (event.ghost) env *= 0.5; // Reduce overall energy for ghosts
+
     let svfLow = 0.0;
     let svfBand = 0.0;
     let rngState = open ? 0x7f3a2c91 : 0x1e9d4baf;
@@ -754,10 +793,10 @@ class AudioEngine {
       metal *= 0.25;
       rngState = xorshift(rngState);
       const noise = ((rngState & 65535) / 32768) - 1;
-      const mix = metal * (0.3 + params.timbre * 0.7) + noise * (0.6 - params.timbre * 0.4);
-      let f = (0.15 + params.timbre * 0.25) * 2;
+      const mix = metal * (0.3 + dynTimbre * 0.7) + noise * (0.6 - dynTimbre * 0.4);
+      let f = (0.15 + dynTimbre * 0.25) * 2;
       if (f > 0.9) f = 0.9;
-      const q = 0.5 + params.timbre * 0.5;
+      const q = 0.5 + dynTimbre * 0.5;
       const hp = mix - svfLow - q * svfBand;
       svfBand += f * hp;
       svfLow += f * svfBand;
@@ -766,17 +805,17 @@ class AudioEngine {
     return buffer;
   }
 
-  trigger(trackIndex, velocity, bassEvent = null, time = null) {
+  trigger(trackIndex, event, bassEvent = null, time = null) {
     if (!this.ctx) return;
 
     if (trackIndex >= 0 && trackIndex <= 3) {
-      const cacheKey = `${trackIndex}-${velocity.toFixed(3)}`;
+      const cacheKey = `${trackIndex}-${event.velocity.toFixed(3)}-${event.accent ? 1 : 0}-${event.ghost ? 1 : 0}`;
       let buffer = this.drumCache.get(cacheKey);
       if (!buffer) {
-        if (trackIndex === 0) buffer = this.buildKickBuffer(velocity);
-        else if (trackIndex === 1) buffer = this.buildSnareBuffer(velocity);
-        else if (trackIndex === 2) buffer = this.buildHatBuffer(velocity, false);
-        else if (trackIndex === 3) buffer = this.buildHatBuffer(velocity, true);
+        if (trackIndex === 0) buffer = this.buildKickBuffer(event);
+        else if (trackIndex === 1) buffer = this.buildSnareBuffer(event);
+        else if (trackIndex === 2) buffer = this.buildHatBuffer(event, false);
+        else if (trackIndex === 3) buffer = this.buildHatBuffer(event, true);
         this.drumCache.set(cacheKey, buffer);
       }
       this.playBuffer(buffer, time);
@@ -1204,9 +1243,26 @@ class PenosaDesktopSim {
       }
     }
 
+    let firstHitFound = false;
     for (let i = 0; i < steps; i += 1) {
       if (track.pattern[i] !== 0) {
-        track.pattern[i] = i % 4 === 0 ? 127 : 80;
+        // Primeiro hit encontrado no pattern final rotacionado => velocity forte (127)
+        // Demais hits => velocity base (85)
+        let baseVelocity = firstHitFound ? 85 : 127;
+        firstHitFound = true;
+
+        // Aplicar humanização ±5 nos hits ativos
+        let hum = Math.floor(this.randomUnit() * 11) - 5;
+        track.pattern[i] = clamp(baseVelocity + hum, 1, 127);
+      } else {
+        // Em tracks SNARE (1), HATS (2) e CRASH (3), injetar ghost notes
+        // em steps vazios com ~15% de chance e velocity 20..34
+        if (trackIndex >= 1 && trackIndex <= 3) {
+          if (this.randomUnit() < 0.15) {
+            let ghostVelocity = 20 + Math.floor(this.randomUnit() * 15);
+            track.pattern[i] = clamp(ghostVelocity, 1, 127);
+          }
+        }
       }
     }
   }
@@ -1290,7 +1346,10 @@ class PenosaDesktopSim {
       const cells = [];
       for (let i = 0; i < track.patternLen; i += 1) {
         const value = track.pattern[i];
-        cells.push(value === 127 ? "X" : value > 0 ? "x" : ".");
+        if (value >= 110) cells.push("X");
+        else if (value > 40) cells.push("x");
+        else if (value > 0) cells.push("g"); // Ghost
+        else cells.push(".");
       }
       return `${TRACK_NAMES[index].padEnd(5, " ")} st:${String(track.patternLen).padStart(2, "0")} ht:${String(track.hits).padStart(2, "0")} rt:${String(track.rotationOffset).padStart(2, "0")} | ${cells.join("")}`;
     });
@@ -1359,7 +1418,19 @@ class PenosaDesktopSim {
       if (track.patternLen <= 0 || this.trackMutes[i]) continue;
       const value = track.pattern[step % track.patternLen];
       if (value <= 0) continue;
+
       const velocity = value === 1 ? 0.9 : value / 127;
+      const accent = value >= 110;
+      const ghost = value > 0 && value < 40;
+
+      const event = {
+        velocity,
+        accent,
+        ghost,
+        rawValue: value,
+        trackIndex: i
+      };
+
       if (i === 0) {
         this.bassGroove.onKick();
         rhythm.kick = true;
@@ -1378,18 +1449,20 @@ class PenosaDesktopSim {
         rhythm.hatOpenVelocity = velocity;
       }
       if (i !== VOICE_BASS) {
-        this.audio.trigger(i, velocity, null, offlineTime);
-        events.push(`${TRACK_NAMES[i]}:${velocity.toFixed(2)}`);
+        this.audio.trigger(i, event, null, offlineTime);
+        const typeStr = accent ? "[ACCENT]" : (ghost ? "[GHOST]" : "[HIT]");
+        events.push(`${TRACK_NAMES[i]} ${typeStr}:${velocity.toFixed(2)}`);
       }
     }
 
     if (!this.trackMutes[VOICE_BASS]) {
       const bassEvent = this.bassGroove.onTick(step, bassIsActive, rhythm);
       if (bassEvent) {
-        this.audio.trigger(VOICE_BASS, bassEvent.velocity, bassEvent, offlineTime);
+        this.audio.trigger(VOICE_BASS, bassEvent, bassEvent, offlineTime);
         bassIsActive = true;
         this.bassVoiceHoldMs = bassEvent.gateMs ?? (120 + this.voiceParams[VOICE_BASS].decay * 420);
-        events.push(`BASS:${noteName(bassEvent.note)}:${bassEvent.velocity.toFixed(2)}${bassEvent.slide ? ":slide" : ""}`);
+        const bassTypeStr = bassEvent.accent ? "[ACCENT]" : "[HIT]";
+        events.push(`BASS ${bassTypeStr}:${noteName(bassEvent.note)}:${bassEvent.velocity.toFixed(2)}${bassEvent.slide ? ":slide" : ""}`);
       }
     }
 
