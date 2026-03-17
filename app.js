@@ -699,8 +699,8 @@ class AudioEngine {
     const phaseInc2 = baseFreq * 1.48 * srInv;
     const filterC1 = 0.12 + dynTimbre * 0.10;
     const filterC2 = 0.28 + dynTimbre * 0.15;
-    let wireGain = 1 + dynTimbre * 0.8;
-    let clickGain = 0.5 + dynTimbre * 1.0;
+    const wireGain = 1 + dynTimbre * 0.8;
+    const clickGain = 0.5 + dynTimbre * 1.0;
     let envBody = event.velocity;
     let envNoise = event.velocity;
     let envClick = event.velocity;
