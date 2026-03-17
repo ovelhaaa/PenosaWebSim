@@ -1622,8 +1622,7 @@ function updateUi() {
     .join("\n");
   document.getElementById("debugSummary").textContent = [
     `clock step: ${sim.currentStep}`,
-    `last tick events:`,
-    `${sim.lastTickEvents.length ? sim.lastTickEvents.join("\n") : "  silence"}`,
+    `last tick: ${sim.lastTickEvents.length ? sim.lastTickEvents.join(" | ") : "silence"}`,
     "",
     "bass decision",
     `reason: ${debug.reason}`,
