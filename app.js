@@ -396,6 +396,7 @@ class AudioEngine {
     this.voiceParams = createDefaultVoiceParams();
     this.activeSources = new Set();
     this.driveCurveCache = new Map();
+    this.drumCache = new Map();
   }
 
   ensureStarted() {
@@ -428,6 +429,7 @@ class AudioEngine {
 
   setVoiceParams(params) {
     this.voiceParams = normalizeVoiceParamsList(params);
+    if (this.drumCache) this.drumCache.clear();
     if (!this.ctx || !this.bass) return;
     const bassParams = this.voiceParams[VOICE_BASS];
     const harm = clamp(bassParams.harmonics, 0, 1);
@@ -748,11 +750,24 @@ class AudioEngine {
 
   trigger(trackIndex, velocity, bassEvent = null) {
     if (!this.ctx) return;
-    if (trackIndex === 0) this.playBuffer(this.buildKickBuffer(velocity));
-    if (trackIndex === 1) this.playBuffer(this.buildSnareBuffer(velocity));
-    if (trackIndex === 2) this.playBuffer(this.buildHatBuffer(velocity, false));
-    if (trackIndex === 3) this.playBuffer(this.buildHatBuffer(velocity, true));
-    if (trackIndex === 4 && bassEvent) this.triggerBass(this.ctx.currentTime, bassEvent);
+
+    if (trackIndex >= 0 && trackIndex <= 3) {
+      const cacheKey = `${trackIndex}-${velocity.toFixed(3)}`;
+      let buffer = this.drumCache.get(cacheKey);
+      if (!buffer) {
+        if (trackIndex === 0) buffer = this.buildKickBuffer(velocity);
+        else if (trackIndex === 1) buffer = this.buildSnareBuffer(velocity);
+        else if (trackIndex === 2) buffer = this.buildHatBuffer(velocity, false);
+        else if (trackIndex === 3) buffer = this.buildHatBuffer(velocity, true);
+        this.drumCache.set(cacheKey, buffer);
+      }
+      this.playBuffer(buffer);
+      return;
+    }
+
+    if (trackIndex === 4 && bassEvent) {
+      this.triggerBass(this.ctx.currentTime, bassEvent);
+    }
   }
 
   triggerBass(time, event) {
