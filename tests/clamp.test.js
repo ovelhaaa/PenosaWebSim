@@ -9,7 +9,7 @@ const appCode = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
 
 // Instead of executing the entire app.js, we can just extract the `clamp` function and run it.
 // It's a pure function, so this is much cleaner and avoids the need for massive mock contexts.
-const match = appCode.match(/function clamp\s*\([\s\S]*?\}\n/);
+const match = appCode.match(/function clamp\s*\([^)]*\)\s*\{[\s\S]*?\}/);
 if (!match) {
   throw new Error('Could not find clamp function in app.js');
 }
