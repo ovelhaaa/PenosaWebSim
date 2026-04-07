@@ -2518,11 +2518,12 @@ function bindUi() {
 
   window.addEventListener("keydown", (event) => {
     const target = event.target;
+    const isFocusedMappedControl = target && getPageControls(uiPage).includes(target);
     const isTypingField =
       target &&
       ((target.tagName === "TEXTAREA") ||
         (target.tagName === "INPUT" && !["range", "checkbox", "button"].includes(target.type)));
-    if (isTypingField && !["Escape"].includes(event.key)) return;
+    if (isTypingField && !isFocusedMappedControl && !["Escape"].includes(event.key)) return;
 
     if (event.code === "Space") {
       event.preventDefault();
