@@ -1130,8 +1130,13 @@ class PenosaDesktopSim {
   }
 
   saveCurrentSlot() {
+    this.slots[this.currentSlot] = this.captureCurrentSlotState();
+    this.persistSlots();
+  }
+
+  captureCurrentSlotState() {
     const bass = this.bassGroove.cloneParams();
-    this.slots[this.currentSlot] = {
+    return {
       bpm: this.bpm,
       autoRotateDownbeat: this.autoRotateDownbeat,
       ghostNotesProb: this.ghostNotesProb,
@@ -1148,7 +1153,12 @@ class PenosaDesktopSim {
         rotationOffset: track.rotationOffset,
       })),
     };
-    this.persistSlots();
+  }
+
+  hasUnsavedSlotChanges() {
+    const current = JSON.stringify(this.captureCurrentSlotState());
+    const saved = JSON.stringify(this.slots[this.currentSlot]);
+    return current !== saved;
   }
 
   setSeed(seed) {
@@ -1791,6 +1801,58 @@ const sim = new PenosaDesktopSim();
 const canvas = document.getElementById("tft");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
+let overlay = null;
+let statusMessage = null;
+
+function setStatusMessage(text, timeoutMs = 1400) {
+  statusMessage = {
+    text,
+    until: performance.now() + timeoutMs,
+  };
+}
+
+function openOverlay(config) {
+  overlay = {
+    type: config.type || "confirm",
+    message: config.message || "",
+    options: config.options || ["CANCEL", "OK"],
+    selectedIndex: config.selectedIndex ?? 0,
+    onConfirm: config.onConfirm || null,
+    onCancel: config.onCancel || null,
+  };
+}
+
+function closeOverlay() {
+  overlay = null;
+}
+
+function confirmOverlay() {
+  if (!overlay) return false;
+  const selected = overlay.options[overlay.selectedIndex];
+  const isConfirm =
+    selected === "OK" ||
+    selected === "YES" ||
+    selected === "IMPORT" ||
+    selected === "RESET" ||
+    selected === "LOAD";
+  const onConfirm = overlay.onConfirm;
+  const onCancel = overlay.onCancel;
+  closeOverlay();
+  if (isConfirm) {
+    if (typeof onConfirm === "function") onConfirm();
+  } else if (typeof onCancel === "function") {
+    onCancel();
+  }
+  return true;
+}
+
+function cancelOverlay() {
+  if (!overlay) return false;
+  const onCancel = overlay.onCancel;
+  closeOverlay();
+  if (typeof onCancel === "function") onCancel();
+  return true;
+}
 
 function drawText(x, y, text, color, size = 1, align = "left") {
   ctx.fillStyle = color;
@@ -1927,11 +1989,66 @@ function drawBassView() {
   if (sim.trackMutes[VOICE_BASS]) drawText(160, 108, "MUTE", COLORS.red, 2);
 }
 
+function drawStatusMessage() {
+  if (!statusMessage) return;
+  if (performance.now() > statusMessage.until) {
+    statusMessage = null;
+    return;
+  }
+  const width = 150;
+  const height = 18;
+  const x = Math.round((SCREEN_W - width) / 2);
+  const y = SCREEN_H - height - 4;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+  ctx.fillRect(x * CANVAS_SCALE, y * CANVAS_SCALE, width * CANVAS_SCALE, height * CANVAS_SCALE);
+  ctx.strokeStyle = COLORS.green;
+  ctx.lineWidth = CANVAS_SCALE;
+  ctx.strokeRect(x * CANVAS_SCALE, y * CANVAS_SCALE, width * CANVAS_SCALE, height * CANVAS_SCALE);
+  drawText(x + (width / 2), y + 5, statusMessage.text, COLORS.green, 1, "center");
+}
+
+function drawOverlay() {
+  if (!overlay) return;
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const boxW = 188;
+  const boxH = 84;
+  const boxX = Math.round((SCREEN_W - boxW) / 2);
+  const boxY = Math.round((SCREEN_H - boxH) / 2);
+  ctx.fillStyle = "#080808";
+  ctx.fillRect(boxX * CANVAS_SCALE, boxY * CANVAS_SCALE, boxW * CANVAS_SCALE, boxH * CANVAS_SCALE);
+  ctx.strokeStyle = COLORS.cyan;
+  ctx.lineWidth = CANVAS_SCALE;
+  ctx.strokeRect(boxX * CANVAS_SCALE, boxY * CANVAS_SCALE, boxW * CANVAS_SCALE, boxH * CANVAS_SCALE);
+
+  drawText(boxX + 8, boxY + 8, "CONFIRM", COLORS.cyan, 1);
+  drawText(boxX + 8, boxY + 28, overlay.message, COLORS.text, 1);
+
+  overlay.options.forEach((label, index) => {
+    const optW = 72;
+    const optH = 16;
+    const gap = 12;
+    const total = (overlay.options.length * optW) + ((overlay.options.length - 1) * gap);
+    const startX = boxX + Math.round((boxW - total) / 2);
+    const x = startX + index * (optW + gap);
+    const y = boxY + boxH - optH - 10;
+    const selected = index === overlay.selectedIndex;
+    ctx.fillStyle = selected ? COLORS.green : "#101010";
+    ctx.fillRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
+    ctx.strokeStyle = selected ? COLORS.green : COLORS.dim;
+    ctx.strokeRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
+    drawText(x + (optW / 2), y + 4, label, selected ? "#000000" : COLORS.text, 1, "center");
+  });
+}
+
 function render() {
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawHeader();
   drawPerformanceView();
+  drawStatusMessage();
+  drawOverlay();
   requestAnimationFrame(render);
 }
 
@@ -2272,6 +2389,24 @@ function bindUi() {
   const trackButtons = document.getElementById("trackButtons");
   const muteButtons = document.getElementById("muteButtons");
   const slotButtons = document.getElementById("slotButtons");
+  const requestSlotLoad = (index) => {
+    const doLoad = () => {
+      sim.loadSlot(index);
+      setStatusMessage(`SLOT ${index + 1} LOADED`);
+      updateUi();
+    };
+    if (!sim.hasUnsavedSlotChanges()) {
+      doLoad();
+      return;
+    }
+    openOverlay({
+      type: "confirm",
+      message: `UNSAVED EDITS > LOAD S${index + 1}?`,
+      options: ["CANCEL", "LOAD"],
+      selectedIndex: 1,
+      onConfirm: doLoad,
+    });
+  };
 
   document.querySelectorAll(".mode-btn").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2304,8 +2439,7 @@ function bindUi() {
     button.className = "slot-btn";
     button.textContent = `S${index + 1}`;
     button.addEventListener("click", () => {
-      sim.loadSlot(index);
-      updateUi();
+      requestSlotLoad(index);
     });
     slotButtons.appendChild(button);
   });
@@ -2325,10 +2459,23 @@ function bindUi() {
     updateUi();
   });
   document.getElementById("panicBtn").addEventListener("click", () => sim.audio.stopAll());
-  document.getElementById("saveSlotBtn").addEventListener("click", () => sim.saveCurrentSlot());
-  document.getElementById("resetSlotsBtn").addEventListener("click", () => {
-    sim.resetFactorySlots();
+  document.getElementById("saveSlotBtn").addEventListener("click", () => {
+    sim.saveCurrentSlot();
+    setStatusMessage("SLOT SAVED");
     updateUi();
+  });
+  document.getElementById("resetSlotsBtn").addEventListener("click", () => {
+    openOverlay({
+      type: "confirm",
+      message: "FACTORY RESET ALL SLOTS?",
+      options: ["CANCEL", "RESET"],
+      selectedIndex: 0,
+      onConfirm: () => {
+        sim.resetFactorySlots();
+        setStatusMessage("RESET DONE");
+        updateUi();
+      },
+    });
   });
 
   document.getElementById("bpm").addEventListener("input", (event) => {
@@ -2472,14 +2619,23 @@ function bindUi() {
   document.getElementById("importStateBtn").addEventListener("click", () => {
     const dump = document.getElementById("stateDump").value.trim();
     if (!dump) return;
-    try {
-      sim.importState(dump);
-      sim.audio.ensureStarted();
-      sim.audio.setMaster(sim.masterVolume);
-      updateUi();
-    } catch (error) {
-      window.alert(`JSON invalido: ${error.message}`);
-    }
+    openOverlay({
+      type: "confirm",
+      message: "IMPORT STATE FROM TEXT?",
+      options: ["CANCEL", "IMPORT"],
+      selectedIndex: 1,
+      onConfirm: () => {
+        try {
+          sim.importState(dump);
+          sim.audio.ensureStarted();
+          sim.audio.setMaster(sim.masterVolume);
+          setStatusMessage("STATE IMPORTED");
+          updateUi();
+        } catch (error) {
+          window.alert(`JSON invalido: ${error.message}`);
+        }
+      },
+    });
   });
 
   document.getElementById("exportWavBtn").addEventListener("click", async () => {
@@ -2516,7 +2672,59 @@ function bindUi() {
     }
   });
 
+  canvas.addEventListener("click", (event) => {
+    if (!overlay) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / CANVAS_SCALE;
+    const y = (event.clientY - rect.top) / CANVAS_SCALE;
+    const boxW = 188;
+    const boxH = 84;
+    const boxX = Math.round((SCREEN_W - boxW) / 2);
+    const boxY = Math.round((SCREEN_H - boxH) / 2);
+    const optW = 72;
+    const optH = 16;
+    const gap = 12;
+    const total = (overlay.options.length * optW) + ((overlay.options.length - 1) * gap);
+    const startX = boxX + Math.round((boxW - total) / 2);
+    const yTop = boxY + boxH - optH - 10;
+    if (y < yTop || y > yTop + optH) return;
+    for (let i = 0; i < overlay.options.length; i += 1) {
+      const xLeft = startX + i * (optW + gap);
+      if (x >= xLeft && x <= xLeft + optW) {
+        overlay.selectedIndex = i;
+        confirmOverlay();
+        updateUi();
+        break;
+      }
+    }
+  });
+
   window.addEventListener("keydown", (event) => {
+    if (overlay) {
+      if (["ArrowLeft", "ArrowUp"].includes(event.code) || event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        overlay.selectedIndex = (overlay.selectedIndex - 1 + overlay.options.length) % overlay.options.length;
+        return;
+      }
+      if (["ArrowRight", "ArrowDown"].includes(event.code) || event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        overlay.selectedIndex = (overlay.selectedIndex + 1) % overlay.options.length;
+        return;
+      }
+      if (event.code === "Enter") {
+        event.preventDefault();
+        confirmOverlay();
+        updateUi();
+        return;
+      }
+      if (event.code === "Backspace" || event.code === "Escape") {
+        event.preventDefault();
+        cancelOverlay();
+        updateUi();
+        return;
+      }
+    }
+
     const target = event.target;
     const isTypingField =
       target &&
