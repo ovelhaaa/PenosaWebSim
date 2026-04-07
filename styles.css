@@ -7,10 +7,6 @@
   --dim: #858585;
   --green: #2dff64;
   --red: #ff4c5c;
-  --yellow: #ffe15a;
-  --cyan: #45e3ff;
-  --magenta: #ff6ce6;
-  --orange: #ff9e45;
 }
 
 * {
@@ -20,6 +16,9 @@
 body {
   margin: 0;
   min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
   background:
     radial-gradient(circle at top, rgba(45, 255, 100, 0.08), transparent 32%),
     linear-gradient(180deg, #050505 0%, #0b0b0b 100%);
@@ -27,24 +26,29 @@ body {
   font-family: Consolas, "Courier New", monospace;
 }
 
-.app-shell {
+.device-shell {
+  width: min(1120px, 96vw);
+  height: min(96vh, 840px);
   display: grid;
-  grid-template-columns: minmax(520px, 760px) minmax(320px, 420px);
-  gap: 24px;
-  padding: 24px;
-  align-items: start;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 16px;
+  background: #0a0a0a;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
 }
 
 .screen-shell,
-.panel {
+.panel,
+.mode-nav {
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--panel);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 .screen-shell {
   padding: 14px;
-  border-radius: 20px;
+  border-radius: 18px;
 }
 
 .screen-topline,
@@ -59,6 +63,7 @@ body {
 
 #tft {
   width: 100%;
+  max-height: 52vh;
   height: auto;
   display: block;
   margin: 12px 0;
@@ -68,14 +73,32 @@ body {
   border-radius: 14px;
 }
 
-.controls-shell {
+.mode-nav {
   display: grid;
-  gap: 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.page-stage {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel {
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 14px;
+  height: 100%;
+  overflow: auto;
+}
+
+.page-panel {
+  display: none;
+}
+
+.page-panel.active {
+  display: block;
 }
 
 .panel h2 {
@@ -127,7 +150,8 @@ button:hover {
   border-color: var(--green);
 }
 
-button.primary {
+button.primary,
+.mode-btn.active {
   background: rgba(45, 255, 100, 0.12);
   border-color: rgba(45, 255, 100, 0.35);
 }
@@ -201,8 +225,8 @@ input[type="range"] {
   white-space: pre-wrap;
 }
 
-@media (max-width: 1080px) {
-  .app-shell {
-    grid-template-columns: 1fr;
+@media (max-width: 860px) {
+  .mode-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

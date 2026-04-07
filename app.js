@@ -17,6 +17,8 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 const BASS_ROOT_MIN = 24;
 const BASS_ROOT_MAX = 48;
 const STORAGE_KEY = "penosa-desktop-sim-slots-v2";
+const UI_PAGES = ["performance", "track", "bass", "voice", "slots", "lab"];
+let uiPage = "performance";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -1923,6 +1925,21 @@ function render() {
   requestAnimationFrame(render);
 }
 
+function renderUiPage() {
+  document.querySelectorAll(".page-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.page === uiPage);
+  });
+  document.querySelectorAll(".mode-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.page === uiPage);
+  });
+}
+
+function setUiPage(nextPage) {
+  if (!UI_PAGES.includes(nextPage)) return;
+  uiPage = nextPage;
+  renderUiPage();
+}
+
 function updateUi() {
   document.getElementById("playToggle").textContent = sim.isPlaying ? "Stop" : "Play";
   document.getElementById("bpm").value = sim.bpm;
@@ -1946,44 +1963,38 @@ function updateUi() {
   });
 
   const drumEditor = document.getElementById("drumEditor");
-  const bassEditor = document.getElementById("bassEditor");
   const kickVoiceEditor = document.getElementById("kickVoiceEditor");
   const snareVoiceEditor = document.getElementById("snareVoiceEditor");
   const hatVoiceEditor = document.getElementById("hatVoiceEditor");
   const bassVoiceEditor = document.getElementById("bassVoiceEditor");
   document.getElementById("editorTitle").textContent = `Edit ${TRACK_NAMES[sim.activeTrack]}`;
-  const voice = sim.voiceParams[sim.activeTrack];
 
-  if (sim.activeTrack === VOICE_BASS) {
-    drumEditor.classList.add("hidden");
-    bassEditor.classList.remove("hidden");
-    kickVoiceEditor.classList.add("hidden");
-    snareVoiceEditor.classList.add("hidden");
-    hatVoiceEditor.classList.add("hidden");
-    bassVoiceEditor.classList.remove("hidden");
-    const bass = sim.bassGroove.cloneParams();
-    document.getElementById("density").value = Math.round(bass.density * 100);
-    document.getElementById("densityValue").textContent = `${Math.round(bass.density * 100)}%`;
-    document.getElementById("bassProb").value = Math.round(bass.bassProb * 100);
-    document.getElementById("bassProbValue").textContent = `${Math.round(bass.bassProb * 100)}%`;
-    document.getElementById("range").value = bass.range;
-    document.getElementById("rangeValue").textContent = String(bass.range);
-    document.getElementById("scale").value = String(bass.scaleType);
-    document.getElementById("root").value = bass.rootNote;
-    document.getElementById("rootValue").textContent = noteName(bass.rootNote);
-    document.getElementById("bassRelease").value = Math.round(voice.decay * 100);
-    document.getElementById("bassReleaseValue").textContent = `${Math.round(voice.decay * 100)}%`;
-    document.getElementById("bassBrightness").value = Math.round(voice.timbre * 100);
-    document.getElementById("bassBrightnessValue").textContent = `${Math.round(voice.timbre * 100)}%`;
-    document.getElementById("bassHarmonics").value = Math.round(voice.harmonics * 100);
-    document.getElementById("bassHarmonicsValue").textContent = `${Math.round(voice.harmonics * 100)}%`;
-    document.getElementById("bassDrive").value = Math.round(voice.drive * 100);
-    document.getElementById("bassDriveValue").textContent = `${Math.round(voice.drive * 100)}%`;
-    document.getElementById("bassSnap").value = Math.round(voice.snap * 100);
-    document.getElementById("bassSnapValue").textContent = `${Math.round(voice.snap * 100)}%`;
-  } else {
-    drumEditor.classList.remove("hidden");
-    bassEditor.classList.add("hidden");
+  const bass = sim.bassGroove.cloneParams();
+  const bassVoice = sim.voiceParams[VOICE_BASS];
+  document.getElementById("density").value = Math.round(bass.density * 100);
+  document.getElementById("densityValue").textContent = `${Math.round(bass.density * 100)}%`;
+  document.getElementById("bassProb").value = Math.round(bass.bassProb * 100);
+  document.getElementById("bassProbValue").textContent = `${Math.round(bass.bassProb * 100)}%`;
+  document.getElementById("range").value = bass.range;
+  document.getElementById("rangeValue").textContent = String(bass.range);
+  document.getElementById("scale").value = String(bass.scaleType);
+  document.getElementById("root").value = bass.rootNote;
+  document.getElementById("rootValue").textContent = noteName(bass.rootNote);
+  document.getElementById("bassRelease").value = Math.round(bassVoice.decay * 100);
+  document.getElementById("bassReleaseValue").textContent = `${Math.round(bassVoice.decay * 100)}%`;
+  document.getElementById("bassBrightness").value = Math.round(bassVoice.timbre * 100);
+  document.getElementById("bassBrightnessValue").textContent = `${Math.round(bassVoice.timbre * 100)}%`;
+  document.getElementById("bassHarmonics").value = Math.round(bassVoice.harmonics * 100);
+  document.getElementById("bassHarmonicsValue").textContent = `${Math.round(bassVoice.harmonics * 100)}%`;
+  document.getElementById("bassDrive").value = Math.round(bassVoice.drive * 100);
+  document.getElementById("bassDriveValue").textContent = `${Math.round(bassVoice.drive * 100)}%`;
+  document.getElementById("bassSnap").value = Math.round(bassVoice.snap * 100);
+  document.getElementById("bassSnapValue").textContent = `${Math.round(bassVoice.snap * 100)}%`;
+
+  const isBassTrack = sim.activeTrack === VOICE_BASS;
+  drumEditor.classList.toggle("hidden", isBassTrack);
+
+  if (!isBassTrack) {
     const track = sim.tracks[sim.activeTrack];
     document.getElementById("steps").value = track.steps;
     document.getElementById("stepsValue").textContent = String(track.steps);
@@ -1993,36 +2004,39 @@ function updateUi() {
     document.getElementById("rotation").value = track.rotationOffset;
     document.getElementById("rotation").max = Math.max(0, track.steps - 1);
     document.getElementById("rotationValue").textContent = String(track.rotationOffset);
+  }
 
-    kickVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 0);
-    snareVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 1);
-    hatVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 2 && sim.activeTrack !== 3);
-    bassVoiceEditor.classList.add("hidden");
+  kickVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 0);
+  snareVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 1);
+  hatVoiceEditor.classList.toggle("hidden", sim.activeTrack !== 2 && sim.activeTrack !== 3);
+  bassVoiceEditor.classList.toggle("hidden", !isBassTrack);
 
-    if (sim.activeTrack === 0) {
-      document.getElementById("kickTune").value = Math.round(voice.pitch * 100);
-      document.getElementById("kickTuneValue").textContent = `${Math.round(voice.pitch * 100)}%`;
-      document.getElementById("kickLength").value = Math.round(voice.decay * 100);
-      document.getElementById("kickLengthValue").textContent = `${Math.round(voice.decay * 100)}%`;
-      document.getElementById("kickPunch").value = Math.round(voice.timbre * 100);
-      document.getElementById("kickPunchValue").textContent = `${Math.round(voice.timbre * 100)}%`;
-      document.getElementById("kickDrive").value = Math.round(voice.drive * 100);
-      document.getElementById("kickDriveValue").textContent = `${Math.round(voice.drive * 100)}%`;
-    } else if (sim.activeTrack === 1) {
-      document.getElementById("snareTone").value = Math.round(voice.pitch * 100);
-      document.getElementById("snareToneValue").textContent = `${Math.round(voice.pitch * 100)}%`;
-      document.getElementById("snareDecay").value = Math.round(voice.decay * 100);
-      document.getElementById("snareDecayValue").textContent = `${Math.round(voice.decay * 100)}%`;
-      document.getElementById("snareTimbre").value = Math.round(voice.timbre * 100);
-      document.getElementById("snareTimbreValue").textContent = `${Math.round(voice.timbre * 100)}%`;
-      document.getElementById("snareMode").value = String(voice.mode);
-    } else {
-      document.getElementById("hatModeLabel").textContent = sim.activeTrack === 2 ? "Closed hat model" : "Open hat model";
-      document.getElementById("hatDecay").value = Math.round(voice.decay * 100);
-      document.getElementById("hatDecayValue").textContent = `${Math.round(voice.decay * 100)}%`;
-      document.getElementById("hatTimbre").value = Math.round(voice.timbre * 100);
-      document.getElementById("hatTimbreValue").textContent = `${Math.round(voice.timbre * 100)}%`;
-    }
+  if (sim.activeTrack === 0) {
+    const voice = sim.voiceParams[0];
+    document.getElementById("kickTune").value = Math.round(voice.pitch * 100);
+    document.getElementById("kickTuneValue").textContent = `${Math.round(voice.pitch * 100)}%`;
+    document.getElementById("kickLength").value = Math.round(voice.decay * 100);
+    document.getElementById("kickLengthValue").textContent = `${Math.round(voice.decay * 100)}%`;
+    document.getElementById("kickPunch").value = Math.round(voice.timbre * 100);
+    document.getElementById("kickPunchValue").textContent = `${Math.round(voice.timbre * 100)}%`;
+    document.getElementById("kickDrive").value = Math.round(voice.drive * 100);
+    document.getElementById("kickDriveValue").textContent = `${Math.round(voice.drive * 100)}%`;
+  } else if (sim.activeTrack === 1) {
+    const voice = sim.voiceParams[1];
+    document.getElementById("snareTone").value = Math.round(voice.pitch * 100);
+    document.getElementById("snareToneValue").textContent = `${Math.round(voice.pitch * 100)}%`;
+    document.getElementById("snareDecay").value = Math.round(voice.decay * 100);
+    document.getElementById("snareDecayValue").textContent = `${Math.round(voice.decay * 100)}%`;
+    document.getElementById("snareTimbre").value = Math.round(voice.timbre * 100);
+    document.getElementById("snareTimbreValue").textContent = `${Math.round(voice.timbre * 100)}%`;
+    document.getElementById("snareMode").value = String(voice.mode);
+  } else if (sim.activeTrack === 2 || sim.activeTrack === 3) {
+    const voice = sim.voiceParams[sim.activeTrack];
+    document.getElementById("hatModeLabel").textContent = sim.activeTrack === 2 ? "Closed hat model" : "Open hat model";
+    document.getElementById("hatDecay").value = Math.round(voice.decay * 100);
+    document.getElementById("hatDecayValue").textContent = `${Math.round(voice.decay * 100)}%`;
+    document.getElementById("hatTimbre").value = Math.round(voice.timbre * 100);
+    document.getElementById("hatTimbreValue").textContent = `${Math.round(voice.timbre * 100)}%`;
   }
 
   const debug = sim.bassGroove.lastDebug;
@@ -2053,12 +2067,19 @@ function bindUi() {
   const muteButtons = document.getElementById("muteButtons");
   const slotButtons = document.getElementById("slotButtons");
 
+  document.querySelectorAll(".mode-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      setUiPage(button.dataset.page);
+    });
+  });
+
   TRACK_NAMES.forEach((name, index) => {
     const button = document.createElement("button");
     button.className = "track-btn";
     button.textContent = name;
     button.addEventListener("click", () => {
       sim.activeTrack = index;
+      setUiPage("track");
       updateUi();
     });
     trackButtons.appendChild(button);
@@ -2302,5 +2323,6 @@ function bindUi() {
   });
 }
 bindUi();
+renderUiPage();
 updateUi();
 render();

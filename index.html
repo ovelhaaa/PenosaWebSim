@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <main class="app-shell">
+  <main class="device-shell">
     <section class="screen-shell">
       <div class="screen-topline">
         <span>beatCYDa desktopSIM</span>
@@ -20,8 +20,17 @@
       </div>
     </section>
 
-    <section class="controls-shell">
-      <div class="panel">
+    <nav class="mode-nav" aria-label="Navegação de páginas">
+      <button class="mode-btn active" data-page="performance">Performance</button>
+      <button class="mode-btn" data-page="track">Track Edit</button>
+      <button class="mode-btn" data-page="bass">Bass</button>
+      <button class="mode-btn" data-page="voice">Voice</button>
+      <button class="mode-btn" data-page="slots">Slots</button>
+      <button class="mode-btn" data-page="lab">Lab</button>
+    </nav>
+
+    <section class="page-stage">
+      <div class="panel page-panel" data-page="performance">
         <h2>Transporte</h2>
         <div class="row">
           <button id="playToggle" class="primary">Play</button>
@@ -47,16 +56,14 @@
         </label>
       </div>
 
-      <div class="panel">
+      <div class="panel page-panel" data-page="track">
         <h2>Tracks</h2>
         <div id="trackButtons" class="track-grid"></div>
 
         <h3 class="sub-header">Mutes</h3>
         <div id="muteButtons" class="track-grid"></div>
-      </div>
 
-      <div class="panel">
-        <h2 id="editorTitle">Edit</h2>
+        <h3 id="editorTitle" class="sub-header">Edit</h3>
         <div id="drumEditor" class="editor-block">
           <label class="slider-block">
             <span>Steps <strong id="stepsValue"></strong></span>
@@ -71,8 +78,11 @@
             <input id="rotation" type="range" min="0" max="63" value="0">
           </label>
         </div>
+      </div>
 
-        <div id="bassEditor" class="editor-block hidden">
+      <div class="panel page-panel" data-page="bass">
+        <h2>Bass Groove</h2>
+        <div id="bassEditor" class="editor-block">
           <label class="slider-block">
             <span>Density <strong id="densityValue"></strong></span>
             <input id="density" type="range" min="0" max="100" value="60">
@@ -101,7 +111,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel page-panel" data-page="voice">
         <h2>Voice DSP</h2>
         <div id="kickVoiceEditor" class="editor-block hidden">
           <label class="slider-block">
@@ -181,7 +191,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel page-panel" data-page="slots">
         <h2>Slots</h2>
         <div id="slotButtons" class="slot-grid"></div>
         <div class="row">
@@ -190,7 +200,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel page-panel" data-page="lab">
         <h2>Algorithm Lab</h2>
         <label class="slider-block">
           <span>Seed RNG</span>
@@ -204,10 +214,7 @@
           <button id="exportMidiBtn">Export MIDI</button>
         </div>
         <textarea id="stateDump" class="dump-area" spellcheck="false" placeholder="Estado JSON para export/import"></textarea>
-      </div>
-
-      <div class="panel">
-        <h2>Debug</h2>
+        <h3 class="sub-header">Debug</h3>
         <pre id="debugSummary" class="debug-block"></pre>
         <pre id="patternSummary" class="debug-block"></pre>
       </div>
