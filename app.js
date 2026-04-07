@@ -3,14 +3,20 @@ const SCREEN_H = 135;
 const CANVAS_SCALE = 3;
 const TRACK_COUNT = 5;
 const VOICE_BASS = 4;
+const UI_TOKENS = window.UI_TOKENS || {};
+const TOKEN_PALETTE = UI_TOKENS.palette || {};
+const TOKEN_STATE = UI_TOKENS.state || {};
 const COLORS = {
-  bg: "#000000",
-  text: "#ffffff",
-  dim: "#7f7f7f",
-  green: "#2dff64",
-  red: "#ff4c5c",
-  cyan: "#45e3ff",
-  track: ["#ff4c5c", "#ffe15a", "#45e3ff", "#ff6ce6", "#2dff64"],
+  bg: TOKEN_PALETTE.bg || "#000000",
+  text: TOKEN_PALETTE.text || "#ffffff",
+  dim: TOKEN_PALETTE.dim || "#7f7f7f",
+  green: TOKEN_PALETTE.accentGreen || "#2dff64",
+  red: TOKEN_PALETTE.accentRed || "#ff4c5c",
+  cyan: TOKEN_PALETTE.accentCyan || "#45e3ff",
+  track: TOKEN_PALETTE.track || ["#ff4c5c", "#ffe15a", "#45e3ff", "#ff6ce6", "#2dff64"],
+  stateActiveBg: TOKEN_STATE.active?.background || "rgba(69, 227, 255, 0.16)",
+  stateMutedBg: TOKEN_STATE.muted?.background || "rgba(255, 76, 92, 0.14)",
+  warning: TOKEN_STATE.warning?.text || "#ffe15a",
 };
 const TRACK_NAMES = ["KICK", "SNARE", "HATS", "CRASH", "BASS"];
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -2034,11 +2040,11 @@ function drawOverlay() {
     const x = startX + index * (optW + gap);
     const y = boxY + boxH - optH - 10;
     const selected = index === overlay.selectedIndex;
-    ctx.fillStyle = selected ? COLORS.green : "#101010";
+    ctx.fillStyle = selected ? COLORS.green : COLORS.bg;
     ctx.fillRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
     ctx.strokeStyle = selected ? COLORS.green : COLORS.dim;
     ctx.strokeRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
-    drawText(x + (optW / 2), y + 4, label, selected ? "#000000" : COLORS.text, 1, "center");
+    drawText(x + (optW / 2), y + 4, label, selected ? COLORS.bg : COLORS.text, 1, "center");
   });
 }
 

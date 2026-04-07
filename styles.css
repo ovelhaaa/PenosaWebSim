@@ -11,6 +11,18 @@
   --unit: 4px;
   --font-sm: 12px;
   --font-md: 16px;
+  --line-height: 1.333;
+  --letter-wide: 0.08em;
+  --letter-tight: 0.06em;
+  --state-active-border: var(--cyan);
+  --state-active-bg: rgba(69, 227, 255, 0.16);
+  --state-active-text: var(--text);
+  --state-muted-border: var(--red);
+  --state-muted-bg: rgba(255, 76, 92, 0.14);
+  --state-muted-text: var(--red);
+  --state-warning-border: #ffe15a;
+  --state-warning-bg: rgba(255, 225, 90, 0.18);
+  --state-warning-text: #ffe15a;
 }
 
 * {
@@ -27,7 +39,7 @@ body {
   color: var(--text);
   font-family: Consolas, "Courier New", monospace;
   font-size: var(--font-sm);
-  line-height: 1.333;
+  line-height: var(--line-height);
 }
 
 .device-shell {
@@ -62,7 +74,7 @@ body {
   gap: 12px;
   color: var(--dim);
   font-size: var(--font-sm);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--letter-wide);
   text-transform: uppercase;
 }
 
@@ -113,7 +125,7 @@ body {
 .panel h2 {
   margin: 0 0 calc(var(--unit) * 3);
   font-size: var(--font-md);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--letter-wide);
   text-transform: uppercase;
   color: var(--green);
 }
@@ -121,7 +133,7 @@ body {
 .sub-header {
   margin: calc(var(--unit) * 4) 0 calc(var(--unit) * 2);
   font-size: var(--font-sm);
-  letter-spacing: 0.08em;
+  letter-spacing: var(--letter-wide);
   text-transform: uppercase;
   color: var(--dim);
   border-top: 1px solid var(--line);
@@ -148,7 +160,7 @@ select {
   padding: calc(var(--unit) * 2) calc(var(--unit) * 3);
   border-radius: var(--unit);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--letter-tight);
 }
 
 button {
@@ -158,18 +170,19 @@ button {
 
 button:hover {
   transform: none;
-  border-color: var(--cyan);
+  border-color: var(--state-active-border);
 }
 
 .kbd-selected {
-  border-color: var(--cyan);
-  box-shadow: inset 0 0 0 1px var(--cyan);
+  border-color: var(--state-active-border);
+  box-shadow: inset 0 0 0 1px var(--state-active-border);
 }
 
 button.primary,
 .mode-btn.active {
-  background: rgba(69, 227, 255, 0.16);
-  border-color: var(--cyan);
+  background: var(--state-active-bg);
+  border-color: var(--state-active-border);
+  color: var(--state-active-text);
 }
 
 .track-grid,
@@ -182,13 +195,19 @@ button.primary,
 .track-btn.active,
 .slot-btn.active {
   border-color: var(--green);
-  background: rgba(45, 255, 100, 0.16);
+  background: var(--state-active-bg);
 }
 
 .mute-btn.muted {
-  border-color: var(--red);
-  color: var(--red);
-  background: rgba(255, 76, 92, 0.14);
+  border-color: var(--state-muted-border);
+  color: var(--state-muted-text);
+  background: var(--state-muted-bg);
+}
+
+.is-warning {
+  border-color: var(--state-warning-border);
+  color: var(--state-warning-text);
+  background: var(--state-warning-bg);
 }
 
 .slider-block,
@@ -205,7 +224,7 @@ button.primary,
   color: var(--dim);
   font-size: var(--font-sm);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--letter-tight);
 }
 
 .voice-note {
