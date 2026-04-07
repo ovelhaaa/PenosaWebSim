@@ -19,6 +19,16 @@ const BASS_ROOT_MAX = 48;
 const STORAGE_KEY = "penosa-desktop-sim-slots-v2";
 const UI_PAGES = ["performance", "track", "bass", "voice", "slots", "lab"];
 let uiPage = "performance";
+const pageSelectionIndex = {};
+
+const PAGE_HINTS = {
+  performance: "↑↓ escolher controle · A/D ajustar · Enter executar",
+  track: "↑↓ escolher parâmetro · A/D ajustar · Enter toggle · Backspace volta",
+  bass: "↑↓ escolher parâmetro · A/D ajustar · Enter toggle · Backspace volta",
+  voice: "↑↓ escolher parâmetro · A/D ajustar · Enter toggle · Backspace volta",
+  slots: "↑↓ escolher slot/ação · Enter confirmar · Backspace volta",
+  lab: "↑↓ escolher ação · A/D ajustar seed · Enter confirmar · Backspace volta",
+};
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -1934,11 +1944,205 @@ function renderUiPage() {
   });
 }
 
+function isControlVisible(control) {
+  if (!control) return false;
+  if (control.disabled) return false;
+  if (control.offsetParent === null) return false;
+  return true;
+}
+
+function getPageControls(page) {
+  const controlMap = {
+    performance: ["playToggle", "stepBtn", "randomizeBtn", "panicBtn", "bpm", "autoRotate", "ghostNotes", "master"],
+    track: ["steps", "hits", "rotation", ...TRACK_NAMES.map((_, index) => `track-btn-${index}`), ...TRACK_NAMES.map((_, index) => `mute-btn-${index}`)],
+    bass: ["density", "bassProb", "range", "scale", "root"],
+    voice: [
+      "kickTune",
+      "kickLength",
+      "kickPunch",
+      "kickDrive",
+      "snareTone",
+      "snareDecay",
+      "snareTimbre",
+      "snareMode",
+      "hatDecay",
+      "hatTimbre",
+      "bassRelease",
+      "bassBrightness",
+      "bassHarmonics",
+      "bassDrive",
+      "bassSnap",
+    ],
+    slots: [...sim.slots.map((_, index) => `slot-btn-${index}`), "saveSlotBtn", "resetSlotsBtn"],
+    lab: ["seedInput", "applySeedBtn", "exportStateBtn", "importStateBtn", "exportWavBtn", "exportMidiBtn"],
+  };
+
+  return (controlMap[page] || [])
+    .map((id) => {
+      if (id.startsWith("track-btn-")) return document.querySelectorAll(".track-btn")[Number(id.split("-").pop())];
+      if (id.startsWith("mute-btn-")) return document.querySelectorAll(".mute-btn")[Number(id.split("-").pop())];
+      if (id.startsWith("slot-btn-")) return document.querySelectorAll(".slot-btn")[Number(id.split("-").pop())];
+      return document.getElementById(id);
+    })
+    .filter(isControlVisible);
+}
+
+function updateFooterHints() {
+  const pageHint = document.getElementById("pageInputHint");
+  if (pageHint) pageHint.textContent = PAGE_HINTS[uiPage] || PAGE_HINTS.performance;
+}
+
+function updateKeyboardSelectionVisual() {
+  document.querySelectorAll(".kbd-selected").forEach((element) => element.classList.remove("kbd-selected"));
+  const controls = getPageControls(uiPage);
+  if (!controls.length) return;
+  const nextIndex = clamp(pageSelectionIndex[uiPage] ?? 0, 0, controls.length - 1);
+  pageSelectionIndex[uiPage] = nextIndex;
+  controls[nextIndex].classList.add("kbd-selected");
+}
+
+function selectControlOffset(offset) {
+  const controls = getPageControls(uiPage);
+  if (!controls.length) return false;
+  const current = clamp(pageSelectionIndex[uiPage] ?? 0, 0, controls.length - 1);
+  const next = (current + offset + controls.length) % controls.length;
+  pageSelectionIndex[uiPage] = next;
+  updateKeyboardSelectionVisual();
+  controls[next].focus({ preventScroll: true });
+  return true;
+}
+
+function adjustControl(control, direction) {
+  if (!control) return false;
+  if (control.tagName === "INPUT" && control.type === "range") {
+    const step = Number(control.step || 1);
+    const min = Number(control.min ?? 0);
+    const max = Number(control.max ?? 100);
+    const nextValue = clamp(Number(control.value) + (direction * step), min, max);
+    if (nextValue === Number(control.value)) return false;
+    control.value = String(nextValue);
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  if (control.tagName === "SELECT") {
+    const nextIndex = clamp(control.selectedIndex + direction, 0, control.options.length - 1);
+    if (nextIndex === control.selectedIndex) return false;
+    control.selectedIndex = nextIndex;
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  if (control.tagName === "INPUT" && control.type === "number") {
+    const step = Number(control.step || 1);
+    const min = Number(control.min ?? 0);
+    const max = Number(control.max ?? Number.MAX_SAFE_INTEGER);
+    const nextValue = clamp(Number(control.value) + (direction * step), min, max);
+    control.value = String(Math.round(nextValue));
+    control.dispatchEvent(new Event("input", { bubbles: true }));
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  if (control.tagName === "INPUT" && control.type === "checkbox") {
+    control.checked = !control.checked;
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  return false;
+}
+
+function confirmControl(control) {
+  if (!control) return false;
+  if (control.tagName === "INPUT" && control.type === "checkbox") {
+    control.checked = !control.checked;
+    control.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+  control.click();
+  return true;
+}
+
 function setUiPage(nextPage) {
   if (!UI_PAGES.includes(nextPage)) return;
   uiPage = nextPage;
+  if (typeof pageSelectionIndex[uiPage] !== "number") pageSelectionIndex[uiPage] = 0;
   renderUiPage();
+  updateFooterHints();
+  updateKeyboardSelectionVisual();
 }
+
+const inputMap = {
+  performance: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => {
+      const controls = getPageControls("performance");
+      return adjustControl(controls[pageSelectionIndex.performance ?? 0], 1);
+    },
+    decrement: () => {
+      const controls = getPageControls("performance");
+      return adjustControl(controls[pageSelectionIndex.performance ?? 0], -1);
+    },
+    confirm: () => {
+      const controls = getPageControls("performance");
+      return confirmControl(controls[pageSelectionIndex.performance ?? 0]);
+    },
+    back: () => false,
+  },
+  track: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => adjustControl(getPageControls("track")[pageSelectionIndex.track ?? 0], 1),
+    decrement: () => adjustControl(getPageControls("track")[pageSelectionIndex.track ?? 0], -1),
+    confirm: () => confirmControl(getPageControls("track")[pageSelectionIndex.track ?? 0]),
+    back: () => {
+      setUiPage("performance");
+      updateUi();
+      return true;
+    },
+  },
+  bass: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => adjustControl(getPageControls("bass")[pageSelectionIndex.bass ?? 0], 1),
+    decrement: () => adjustControl(getPageControls("bass")[pageSelectionIndex.bass ?? 0], -1),
+    confirm: () => confirmControl(getPageControls("bass")[pageSelectionIndex.bass ?? 0]),
+    back: () => {
+      setUiPage("performance");
+      updateUi();
+      return true;
+    },
+  },
+  voice: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => adjustControl(getPageControls("voice")[pageSelectionIndex.voice ?? 0], 1),
+    decrement: () => adjustControl(getPageControls("voice")[pageSelectionIndex.voice ?? 0], -1),
+    confirm: () => confirmControl(getPageControls("voice")[pageSelectionIndex.voice ?? 0]),
+    back: () => {
+      setUiPage("track");
+      updateUi();
+      return true;
+    },
+  },
+  slots: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => adjustControl(getPageControls("slots")[pageSelectionIndex.slots ?? 0], 1),
+    decrement: () => adjustControl(getPageControls("slots")[pageSelectionIndex.slots ?? 0], -1),
+    confirm: () => confirmControl(getPageControls("slots")[pageSelectionIndex.slots ?? 0]),
+    back: () => {
+      setUiPage("performance");
+      updateUi();
+      return true;
+    },
+  },
+  lab: {
+    select: (direction) => selectControlOffset(direction),
+    increment: () => adjustControl(getPageControls("lab")[pageSelectionIndex.lab ?? 0], 1),
+    decrement: () => adjustControl(getPageControls("lab")[pageSelectionIndex.lab ?? 0], -1),
+    confirm: () => confirmControl(getPageControls("lab")[pageSelectionIndex.lab ?? 0]),
+    back: () => {
+      setUiPage("performance");
+      updateUi();
+      return true;
+    },
+  },
+};
 
 function updateUi() {
   document.getElementById("playToggle").textContent = sim.isPlaying ? "Stop" : "Play";
@@ -2060,6 +2264,8 @@ function updateUi() {
     recentEvents || "none yet",
   ].join("\n");
   document.getElementById("patternSummary").textContent = sim.patternStrings().join("\n");
+  updateFooterHints();
+  updateKeyboardSelectionVisual();
 }
 
 function bindUi() {
@@ -2301,7 +2507,23 @@ function bindUi() {
     }
   });
 
+  document.addEventListener("focusin", (event) => {
+    const controls = getPageControls(uiPage);
+    const focusedIndex = controls.indexOf(event.target);
+    if (focusedIndex >= 0) {
+      pageSelectionIndex[uiPage] = focusedIndex;
+      updateKeyboardSelectionVisual();
+    }
+  });
+
   window.addEventListener("keydown", (event) => {
+    const target = event.target;
+    const isTypingField =
+      target &&
+      ((target.tagName === "TEXTAREA") ||
+        (target.tagName === "INPUT" && !["range", "checkbox", "button"].includes(target.type)));
+    if (isTypingField && !["Escape"].includes(event.key)) return;
+
     if (event.code === "Space") {
       event.preventDefault();
       sim.audio.ensureStarted();
@@ -2315,6 +2537,44 @@ function bindUi() {
       updateUi();
       return;
     }
+
+    const context = inputMap[uiPage];
+    if (context) {
+      if (event.code === "ArrowUp" || event.code === "ArrowLeft") {
+        event.preventDefault();
+        context.select(-1);
+        return;
+      }
+      if (event.code === "ArrowDown") {
+        event.preventDefault();
+        context.select(1);
+        return;
+      }
+      if (event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        context.decrement();
+        updateUi();
+        return;
+      }
+      if (event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        context.increment();
+        updateUi();
+        return;
+      }
+      if (event.code === "Enter") {
+        event.preventDefault();
+        context.confirm();
+        updateUi();
+        return;
+      }
+      if (event.code === "Backspace") {
+        event.preventDefault();
+        context.back();
+        return;
+      }
+    }
+
     const trackIndex = Number(event.key) - 1;
     if (trackIndex >= 0 && trackIndex < TRACK_COUNT) {
       sim.activeTrack = trackIndex;

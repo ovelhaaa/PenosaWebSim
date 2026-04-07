@@ -55,10 +55,15 @@ body {
 .screen-bottomline {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   color: var(--dim);
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.screen-bottomline span:last-child {
+  text-align: right;
 }
 
 #tft {
@@ -148,6 +153,11 @@ button {
 button:hover {
   transform: translateY(-1px);
   border-color: var(--green);
+}
+
+.kbd-selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px rgba(45, 255, 100, 0.4);
 }
 
 button.primary,
