@@ -2040,7 +2040,7 @@ function drawOverlay() {
     const x = startX + index * (optW + gap);
     const y = boxY + boxH - optH - 10;
     const selected = index === overlay.selectedIndex;
-    ctx.fillStyle = selected ? COLORS.green : COLORS.stateMutedBg;
+    ctx.fillStyle = selected ? COLORS.green : COLORS.bg;
     ctx.fillRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
     ctx.strokeStyle = selected ? COLORS.green : COLORS.dim;
     ctx.strokeRect(x * CANVAS_SCALE, y * CANVAS_SCALE, optW * CANVAS_SCALE, optH * CANVAS_SCALE);
