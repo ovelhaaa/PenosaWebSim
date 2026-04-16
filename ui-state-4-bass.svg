@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 405" width="720" height="405">
+  <rect width="720" height="405" fill="#000000" />
+  <rect x="0" y="0" width="720" height="84" fill="#000000" />
+  <text x="18" y="56.400000000000006" fill="#7f7f7f" font-family="Consolas, monospace" font-size="48px" text-anchor="start">BPM</text>
+  <text x="150" y="56.400000000000006" fill="#45e3ff" font-family="Consolas, monospace" font-size="48px" text-anchor="start">120</text>
+  <polygon points="660,24 660,66 705,45" fill="#2dff64" />
+  <rect x="0" y="75" width="720" height="330" fill="#000000" />
+  <text x="18" y="158.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">></text>
+  <text x="54" y="154.2" fill="#2dff64" font-family="Consolas, monospace" font-size="24px" text-anchor="start">Dens:</text>
+  <text x="198" y="158.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">60</text>
+  <text x="306" y="158.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">%</text>
+  <text x="18" y="224.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">></text>
+  <text x="54" y="220.2" fill="#2dff64" font-family="Consolas, monospace" font-size="24px" text-anchor="start">Rnge:</text>
+  <text x="198" y="224.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">7</text>
+  <text x="360" y="158.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">></text>
+  <text x="396" y="154.2" fill="#2dff64" font-family="Consolas, monospace" font-size="24px" text-anchor="start">Scl:</text>
+  <text x="534" y="158.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">DOR</text>
+  <text x="360" y="224.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">></text>
+  <text x="396" y="220.2" fill="#2dff64" font-family="Consolas, monospace" font-size="24px" text-anchor="start">Root:</text>
+  <text x="534" y="224.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">D2</text>
+  <text x="54" y="362.4" fill="#2dff64" font-family="Consolas, monospace" font-size="48px" text-anchor="start">BASS</text>
+</svg>
