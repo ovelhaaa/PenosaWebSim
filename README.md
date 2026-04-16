@@ -1,84 +1,69 @@
-# Penosa Desktop Sim
+# BeatCYDa Desktop Sim
 
-Simulador desktop da Penosa para PC, feito em HTML/CSS/JavaScript.
+Simulador desktop do projeto BeatCYDa (anteriormente Penosa) para PC, feito em HTML/CSS/JavaScript puro, sem frameworks.
 
-## O que ele replica
+O BeatCYDa é uma máquina de grooves euclidiana com foco em performance e geração procedural de ritmos e linhas de baixo.
 
-- Algoritmo euclidiano da Penosa com a mesma logica de `steps`, `hits`, `rotation` e `auto-rotate downbeat`
-- Visualizacao concentrica dos circulos no estilo do display
-- BassGroove com `density`, `bassProb` (probabilidade de tocar), `range`, `scale` e `root`
-- Ghost Notes com controle de probabilidade global (afeta SNARE, HATS, CRASH)
-- Slots de preset com persistencia em `localStorage`
-- Audio via WebAudio com sintese mais proxima das vozes do firmware (`KickVoice`, `SnareVoice`, `HatsVoice`, `BassVoice`)
-- Laboratorio de algoritmo com seed deterministica, step manual, export/import de estado e debug do `BassGroove`
-- Edicao de voz por track com controles de tune, decay, timbre, drive, snap, harmonics e modo de snare
+## Previews da Interface no Display (TFT)
 
-## Como rodar
+Aqui estão representações fiéis (SVGs) da visualização gerada no display do BeatCYDa em diferentes circunstâncias de uso:
 
-Opcao 1:
+### 1. Tocando, Kick Selecionado
+![Kick Selected](./ui-state-1-playing.svg)
 
-- Abra `index.html` diretamente no navegador
+### 2. Parado, Snare Selecionada (Editando Hits e Rotação)
+![Snare Selected](./ui-state-2-snare.svg)
 
-Opcao 2:
+### 3. Tocando, Hats com ritmo complexo
+![Hats Selected](./ui-state-3-hat.svg)
 
-```powershell
-cd "C:\Users\devx\Documents\PlatformIO\Projects\Penosa DM\desktop-penosa-sim"
+### 4. Visão de Baixo (BassGroove)
+![Bass View](./ui-state-4-bass.svg)
+
+## O que ele replica do hardware
+
+- **Algoritmo Euclidiano:** Mesma lógica de `steps`, `hits`, `rotation` e `auto-rotate downbeat`.
+- **Visualização:** Anéis concêntricos euclidianos (estilo display TFT) desenhados no `<canvas>`.
+- **BassGroove:** Geração procedural de baixo estrutural baseada no bumbo, com controles de `density`, `bassProb` (probabilidade de tocar), `range`, `scale` e `root`.
+- **Ghost Notes:** Controle de probabilidade global de notas fantasma (afeta SNARE, HATS, CRASH).
+- **Slots:** Presets com persistência via `localStorage` (versão 2).
+- **Audio WebAudio:** Sintese de alta fidelidade muito próxima às vozes do firmware original (`KickVoice`, `SnareVoice`, `HatsVoice`, `BassVoice`).
+- **Offline Rendering:** Capacidade de exportar loops WAV e arquivos MIDI para DAWs.
+- **Modo Lab:** Laboratório de algoritmo com seed determinística, step manual, export/import de estado JSON e log de debug.
+- **Voice DSP:** Edição profunda de voz por track com controles de tune, decay, timbre, drive, snap, harmonics e modo de caixa (Snare, Rim, Clap).
+
+## Como rodar localmente
+
+Não é necessário build. O projeto é 100% Vanilla.
+
+**Opção 1:**
+Abra o arquivo `index.html` diretamente em seu navegador web (Google Chrome, Firefox, Safari, Edge).
+
+**Opção 2 (Servidor local):**
+```bash
 python -m http.server 8080
 ```
+Depois abra: [http://localhost:8080](http://localhost:8080) no seu navegador.
 
-Depois abra:
+## Controles Globais (Navegador)
 
-- [http://localhost:8080](http://localhost:8080)
+- `Space`: Play/Stop do transporte.
+- `Seta Direita`: Avança um step manualmente quando o transporte estiver parado.
+- `1..5`: Troca rápida de Track (Kick, Snare, Hats, Crash, Bass).
 
-## Controles
+## Páginas da Interface Web
 
-- `Space`: play/stop
-- `Right Arrow`: avanca um step quando o transporte estiver parado
-- `1..5`: troca de track
-- `Play`: inicia o transporte
-- `Step`: executa um tick manual do algoritmo
-- `Randomize`: varia os pads euclidianos
-- `Apply Seed`: fixa a seed para reproduzir variacoes e testes
-- `Export/Import State`: salva e restaura snapshots completos do experimento
-- `Save Slot`: salva o estado atual no slot selecionado
-- `Voice DSP`: edita a sintese da track selecionada
+A navegação web simula os diferentes "modos" da máquina física:
 
-## Observacoes
-
-- O audio aqui ainda e uma aproximacao desktop, mas agora segue mais de perto as formulas e envelopes do firmware ESP32.
-- A visualizacao foi portada da logica do `drawPerformanceView()` da Penosa.
-- O painel `Debug` mostra a ultima decisao do baixo, o log recente de eventos e os pads euclidianos com `steps/hits/rotation`.
+1. **Perf (Performance):** Controles de transporte, BPM, e controles de macro como Auto Rot, Ghost Notes e Master Volume.
+2. **Trk (Track):** Seleção de track, Mute e edição de ritmos euclidianos (Stp, Hit, Rot).
+3. **Bass:** Controle do gerador de graves procedurais.
+4. **Voice:** Edição avançada dos parâmetros do sintetizador para a track selecionada no momento.
+5. **Slots:** Salvar e carregar snapshots rápidos.
+6. **Lab:** Aba de experimentação. Exportação de áudio (WAV/MIDI), manipulação de Seed para aleatoriedade determinística, log do algoritmo e console de debug.
 
 ## UI Identity CYD
 
-### Fonte unica de tokens
+O código fonte utiliza `ui-tokens.js` como fonte única de verdade para a paleta de cores e identidade visual, de forma que o HTML (`styles.css`) e o `<canvas>` (`app.js`) permaneçam visualmente consistentes.
 
-- O projeto usa `ui-tokens.js` como fonte unica de identidade visual (paleta, espacamento, tipografia e estados de interface).
-- `styles.css` deve consumir apenas variaveis CSS (`--bg`, `--green`, `--state-active-bg`, etc.) geradas a partir desses tokens.
-- `app.js` deve ler `window.UI_TOKENS` para desenhar o canvas com as mesmas cores sem duplicar hex em componentes novos.
-
-### Cores por funcao
-
-- **Base/superficie**: `bg`, `panel`, `panelAlt`, `line`.
-- **Texto**: `text` (principal) e `dim` (secundario/hints).
-- **Acoes**: `accentCyan` para foco/selecao e chamada primaria.
-- **Sucesso/atividade**: `accentGreen` para elemento ativo em execucao.
-- **Erro/mute**: `accentRed` para estado mutado, perigo e alertas de bloqueio.
-- **Warning**: usar `state.warning` para avisos temporarios sem semantica de erro.
-
-### Estados padrao
-
-- `active`: destaque de foco/navegacao e botoes selecionados.
-- `muted`: feedback visual de mudo/inativo por intencao.
-- `warning`: feedback de atencao (ex.: acao irreversivel, parametro limite).
-
-### Abreviacoes permitidas
-
-- Labels curtos podem usar: `Perf`, `Trk`, `Stp`, `Hit`, `Rot`, `Dens`, `Rnge`, `Scl`, `Trns`, `Vce`, `Exp`, `Imp`, `Pnc`.
-- Evitar novas abreviacoes sem necessidade; quando adicionar, manter padrao de 3-5 caracteres e caixa alta no canvas.
-
-### Navegacao por paginas
-
-- Ordem oficial de paginas: `performance -> track -> bass -> voice -> slots -> lab`.
-- O fluxo de `BK` (back) sempre retorna para `performance`.
-- Cada pagina deve manter hint de input no rodape (`PAGE_HINTS`) com o mesmo formato visual e sem mudar atalhos globais (`SPC RUN/STOP · TRK 1-5`).
+Abreviaturas curtas de três letras são o padrão oficial tanto no CSS quanto na renderização para otimizar espaço de tela.
